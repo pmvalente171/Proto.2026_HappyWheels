@@ -1,0 +1,222 @@
+﻿using UnityEngine;
+
+namespace Gameplay.Player
+{
+    /// <summary>
+    /// Bicycle physics on a rolling sphere. The sphere acts as the wheel: it rolls with real PhysX friction, but it
+    /// may only spin around its axle (perpendicular to the heading). Steering turns the axle, and contact friction
+    /// drags the ball into the turn like a tire. Grip therefore comes from the physics materials (player × ground).
+    /// Controls are bike-relative: y = pedal (+) / brake (-), x = steer.
+    /// </summary>
+    [RequireComponent(typeof(Rigidbody))]
+    public class BallMotor : MonoBehaviour
+    {
+        // High enough to never limit speed (Unity's default of 7 rad/s caps a 0.5 m ball at ~3.5 m/s)
+        private const float MaxSpin = 200f;
+
+        [Header("References")]
+        [SerializeField] private InputBootstrap input;
+
+        [Header("Ground")]
+        [Tooltip("Layers considered ground. Must NOT include the player or bicycle layers.")]
+        [SerializeField] private LayerMask groundLayers = ~0;
+        [Tooltip("Extra distance below the sphere's surface that still counts as grounded.")]
+        [SerializeField, Min(0f)] private float groundCheckDistance = 0.1f;
+
+        [Header("Steering")]
+        [Tooltip("Distance between the wheel axles (m). Longer = wider turns.")]
+        [SerializeField, Min(0.1f)] private float wheelbase = 1.05f;
+        [Tooltip("Max handlebar angle (degrees, Y axis) at a given forward speed (m/s, X axis). Lower at speed = harder to turn fast.")]
+        [SerializeField] private AnimationCurve maxSteerAngle = new(
+            new Keyframe(0f, 35f), new Keyframe(3f, 20f), new Keyframe(6f, 10f),
+            new Keyframe(12f, 5f), new Keyframe(20f, 3f));
+        [Tooltip("How fast the handlebar turns, in degrees per second.")]
+        [SerializeField, Min(1f)] private float steerRate = 120f;
+        [Tooltip("When slower than this (m/s), turning behaves as if moving at this speed, so a stopped bike can still pivot slowly. 0 = fully realistic: no turning without moving.")]
+        [SerializeField, Min(0f)] private float minTurnSpeed = 0.3f;
+
+        [Header("Pedalling")]
+        [Tooltip("Acceleration from pedalling at a standstill (m/s²). Fades to zero at Max Pedal Speed.")]
+        [SerializeField, Min(0f)] private float pedalAcceleration = 3f;
+        [Tooltip("Fastest speed the rider can pedal to (m/s). Gravity can still take the bike faster downhill.")]
+        [SerializeField, Min(0.1f)] private float maxPedalSpeed = 8f;
+        [Tooltip("Deceleration at full brake (m/s²). Brake harder than the friction allows and the wheel locks and skids.")]
+        [SerializeField, Min(0f)] private float brakeDeceleration = 6f;
+        [Tooltip("Constant slowdown from the tires rolling (m/s²), so the bike coasts to a stop on flat ground.")]
+        [SerializeField, Min(0f)] private float rollingResistance = 0.15f;
+
+        [Header("Feedback")]
+        [Tooltip("Sliding speed at the contact patch (m/s) above which the bike counts as skidding.")]
+        [SerializeField, Min(0f)] private float skidSlipSpeed = 0.5f;
+
+        private Rigidbody _rigidbody;
+        private float _castRadius;
+        private Vector2 _rideInput;
+
+        private Vector3 _heading = Vector3.forward;
+        private Vector3 _previousHeading = Vector3.forward;
+
+        /// <summary>x = steer (-1 left, +1 right), y = pedal (+) / brake (-). Clamped to length 1.</summary>
+        public Vector2 RideInput
+        {
+            get => _rideInput;
+            set => _rideInput = Vector2.ClampMagnitude(value, 1f);
+        }
+
+        /// <summary>Direction the bike points, as of the last physics step.</summary>
+        public Vector3 Heading => _heading;
+
+        /// <summary>Heading interpolated between physics steps, for smooth visuals (matches Rigidbody interpolation).</summary>
+        public Vector3 InterpolatedHeading
+        {
+            get
+            {
+                float t = Mathf.Clamp01((Time.time - Time.fixedTime) / Time.fixedDeltaTime);
+                return Vector3.Slerp(_previousHeading, _heading, t);
+            }
+        }
+
+        /// <summary>Speed of the ball along the heading (m/s); negative when rolling backwards.</summary>
+        public float ForwardSpeed { get; private set; }
+        /// <summary>Surface speed of the wheel (m/s). Differs from ForwardSpeed while skidding or with a locked wheel.</summary>
+        public float WheelSpeed { get; private set; }
+        /// <summary>Current handlebar angle in degrees; positive = right.</summary>
+        public float SteerAngle { get; private set; }
+        public bool IsGrounded { get; private set; }
+        /// <summary>True when the contact patch slides faster than Skid Slip Speed (cornering too hard, locked brake...).</summary>
+        public bool IsSkidding { get; private set; }
+        public Vector3 GroundNormal { get; private set; } = Vector3.up;
+        /// <summary>World radius of the sphere collider.</summary>
+        public float Radius { get; private set; } = 0.5f;
+
+        private void Awake()
+        {
+            _rigidbody = GetComponent<Rigidbody>();
+            _rigidbody.maxAngularVelocity = MaxSpin;
+
+            Radius = ComputeRadius();
+            _castRadius = Radius * 0.95f;
+
+            _heading = _previousHeading = FlattenHeading(transform.forward, Vector3.up);
+
+            if (!input)
+            {
+                Debug.LogError($"{nameof(BallMotor)} on '{name}' has no {nameof(InputBootstrap)} assigned.", this);
+                enabled = false;
+            }
+        }
+
+        private void Update()
+        {
+            RideInput = input.Actions.Player.Move.ReadValue<Vector2>();
+        }
+
+        private void FixedUpdate()
+        {
+            float dt = Time.fixedDeltaTime;
+            _previousHeading = _heading;
+
+            IsGrounded = TryGetGround(_rigidbody.position, out RaycastHit hit);
+            GroundNormal = IsGrounded ? hit.normal : Vector3.up;
+            Vector3 up = GroundNormal;
+
+            Vector3 forward = FlattenHeading(_heading, up);
+            Vector3 velocity = _rigidbody.linearVelocity;
+
+            // The handlebar turns at a limited rate, even in the air
+            float targetSteer = _rideInput.x * maxSteerAngle.Evaluate(Mathf.Abs(Vector3.Dot(velocity, forward)));
+            SteerAngle = Mathf.MoveTowards(SteerAngle, targetSteer, steerRate * dt);
+
+            // No tire contact in the air: the heading only changes on the ground
+            if (IsGrounded)
+                forward = Steer(forward, up, Vector3.Dot(velocity, forward), dt);
+            _heading = forward;
+            ForwardSpeed = Vector3.Dot(velocity, forward);
+
+            // The sphere is a wheel: it may only spin around its axle. Removing the other components is what
+            // stops it rolling sideways, so friction at the contact patch acts as the tire's sideways grip.
+            Vector3 axle = Vector3.Cross(up, forward);
+            float spin = Vector3.Dot(_rigidbody.angularVelocity, axle); // rad/s, positive = rolling forward
+            if (IsGrounded)
+                spin = ApplyPedalsAndBrakes(spin);
+            _rigidbody.angularVelocity = axle * spin;
+
+            WheelSpeed = spin * Radius;
+
+            // Contact patch velocity = ball velocity minus the wheel's surface velocity
+            Vector3 slip = Vector3.ProjectOnPlane(velocity - forward * WheelSpeed, up);
+            IsSkidding = IsGrounded && slip.magnitude > skidSlipSpeed;
+        }
+
+        /// <summary>Rotates the heading using the kinematic bicycle model: yaw rate = v / wheelbase × tan(steer).</summary>
+        private Vector3 Steer(Vector3 forward, Vector3 up, float forwardSpeed, float dt)
+        {
+            float turnSpeed = Mathf.Abs(forwardSpeed) < minTurnSpeed
+                ? minTurnSpeed * Mathf.Sign(forwardSpeed)
+                : forwardSpeed;
+
+            float yawRate = turnSpeed / wheelbase * Mathf.Tan(SteerAngle * Mathf.Deg2Rad); // rad/s
+            return Quaternion.AngleAxis(yawRate * Mathf.Rad2Deg * dt, up) * forward;
+        }
+
+        /// <summary>
+        /// Changes the wheel's spin; contact friction then turns that into ball acceleration.
+        /// Accelerations are given in m/s² of ball speed and converted to the spin change that produces them.
+        /// </summary>
+        private float ApplyPedalsAndBrakes(float spin)
+        {
+            float dt = Time.fixedDeltaTime;
+            float pedal = Mathf.Max(_rideInput.y, 0f);
+            float brake = Mathf.Max(-_rideInput.y, 0f);
+
+            // A spin change Δω on a rolling ball becomes Δv = Δω·r / k (the rest goes into rotation),
+            // with k = 1 + m·r² / I. So to get Δv we need Δω = Δv·k / r.
+            float inertia = Mathf.Max(_rigidbody.inertiaTensor.x, 0.0001f);
+            float spinPerSpeed = (1f + _rigidbody.mass * Radius * Radius / inertia) / Radius;
+
+            // Human power: lots of push from a standstill, none at max pedal speed or above
+            float drive = pedal * pedalAcceleration * Mathf.Clamp01(1f - ForwardSpeed / maxPedalSpeed);
+            spin += drive * spinPerSpeed * dt;
+
+            // Bikes don't reverse: braking and rolling resistance only slow the wheel, to zero at most.
+            // A strong brake stops the wheel faster than friction can stop the ball: that's a locked, skidding wheel.
+            float resistance = (brake * brakeDeceleration + rollingResistance) * spinPerSpeed * dt;
+            spin -= Mathf.Sign(spin) * Mathf.Min(resistance, Mathf.Abs(spin));
+
+            return spin;
+        }
+
+        /// <summary>
+        /// Sphere-casts down from <paramref name="center"/> using this motor's ground settings.
+        /// Public so visuals can test from the interpolated position.
+        /// </summary>
+        public bool TryGetGround(Vector3 center, out RaycastHit hit)
+        {
+            float distance = groundCheckDistance + (Radius - _castRadius);
+            return Physics.SphereCast(center, _castRadius, Vector3.down, out hit, distance,
+                groundLayers, QueryTriggerInteraction.Ignore);
+        }
+
+        private static Vector3 FlattenHeading(Vector3 heading, Vector3 up)
+        {
+            Vector3 flat = Vector3.ProjectOnPlane(heading, up);
+            if (flat.sqrMagnitude < 0.0001f)
+                flat = Vector3.ProjectOnPlane(Vector3.forward, up); // heading parallel to up; pick anything sane
+            return flat.normalized;
+        }
+
+        private float ComputeRadius()
+        {
+            if (TryGetComponent(out SphereCollider sphere))
+            {
+                Vector3 s = transform.lossyScale;
+                return sphere.radius * Mathf.Max(Mathf.Abs(s.x), Mathf.Abs(s.y), Mathf.Abs(s.z));
+            }
+
+            if (TryGetComponent(out Collider anyCollider))
+                return anyCollider.bounds.extents.y;
+
+            return Radius;
+        }
+    }
+}

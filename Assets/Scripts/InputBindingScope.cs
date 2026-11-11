@@ -2,7 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine.InputSystem;
 
-public sealed class InputBindingScope
+/// <summary>
+/// Collects input action subscriptions so they can all be removed with one <see cref="Dispose"/> call
+/// (typically in OnDisable).
+/// </summary>
+public sealed class InputBindingScope : IDisposable
 {
     readonly List<Action> _unbinders = new();
 
@@ -14,7 +18,7 @@ public sealed class InputBindingScope
         _unbinders.Add(() => action.started -= handler); // Starts adding actions that will be unbound later
         return this;
     }
-    
+
     public InputBindingScope OnPerformed(InputAction action,
         Action<InputAction.CallbackContext> handler)
     {
@@ -31,19 +35,19 @@ public sealed class InputBindingScope
         _unbinders.Add(() => action.canceled -= handler);
         return this;
     }
-    
-    // Helpful binders
-    public InputBindingScope OnStarted(InputAction action, Action handler) 
-        => OnStarted(action, handler);
-    public InputBindingScope OnPerformed(InputAction action, Action handler) 
-        => OnPerformed(action, handler);
-    public InputBindingScope OnCancelled(InputAction action, Action handler) 
-        => OnCancelled(action, handler);
 
+    // Helpful binders for handlers that don't need the callback context.
+    // The wrapping lambda is stored by the overloads above, so unbinding still works.
+    public InputBindingScope OnStarted(InputAction action, Action handler)
+        => OnStarted(action, _ => handler());
+    public InputBindingScope OnPerformed(InputAction action, Action handler)
+        => OnPerformed(action, _ => handler());
+    public InputBindingScope OnCanceled(InputAction action, Action handler)
+        => OnCanceled(action, _ => handler());
 
     public void Dispose()
     {
         foreach (var unbind in _unbinders) unbind();
-        _unbinders.Clear(); 
+        _unbinders.Clear();
     }
 }
