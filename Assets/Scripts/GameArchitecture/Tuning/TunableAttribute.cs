@@ -9,7 +9,10 @@ namespace GameArchitecture.Tuning
     /// <example>
     /// <code>[Tunable("Bike", "Drivetrain/Boost")] public float boost = 1.5f;</code>
     /// Puts the field in the "Bike" tab, inside a "Drivetrain" folder, inside a "Boost" folder.
+    /// <code>[Tunable("Bike", "Drivetrain", ReadOnly = true)] public float[] preview;</code>
+    /// Shows the field but doesn't let it be edited (for values worked out by code, e.g. in OnValidate).
     /// </example>
+    /// <remarks>Arrays and lists are drawn as tables, one row per element and one column per field.</remarks>
     [AttributeUsage(AttributeTargets.Field)]
     public sealed class TunableAttribute : Attribute
     {
@@ -18,6 +21,9 @@ namespace GameArchitecture.Tuning
 
         /// <summary>Folders inside the tab, separated by '/'. Empty = top level of the tab.</summary>
         public string Path { get; }
+
+        /// <summary>Shown but not editable, in both the Tuning window and the Inspector.</summary>
+        public bool ReadOnly { get; set; }
 
         public TunableAttribute(string tab, string path = "")
         {

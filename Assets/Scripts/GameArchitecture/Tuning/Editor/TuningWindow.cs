@@ -15,8 +15,6 @@ namespace GameArchitecture.Tuning.Editing
     /// </summary>
     public class TuningWindow : EditorWindow
     {
-        private const int MaxNestingDepth = 8;
-
         /// <summary>One folder in a tab's tree.</summary>
         private class Node
         {
@@ -24,6 +22,7 @@ namespace GameArchitecture.Tuning.Editing
             public readonly string Key; // unique, for remembering whether it's folded
             public readonly List<Node> Children = new();
             public readonly List<string> PropertyPaths = new();
+            public readonly HashSet<string> ReadOnlyPaths = new();
 
             public Node(string name, string key)
             {
@@ -79,7 +78,7 @@ namespace GameArchitecture.Tuning.Editing
 
             foreach (Type type in FindTunableAssetTypes())
             {
-                List<(string propertyPath, TunableAttribute attribute)> fields = CollectTunables(type, "", 0).ToList();
+                List<(string propertyPath, TunableAttribute attribute)> fields = TunableFields.Collect(type).ToList();
                 foreach (Object asset in FindAssets(type))
                     AddAsset(asset, fields);
             }
@@ -131,6 +130,8 @@ namespace GameArchitecture.Tuning.Editing
                         node = node.GetOrAddChild(folder.Trim());
                 }
                 node.PropertyPaths.Add(propertyPath);
+                if (attribute.ReadOnly)
+                    node.ReadOnlyPaths.Add(propertyPath);
             }
 
             if (groupsForThisAsset.Count > 0)
@@ -155,58 +156,10 @@ namespace GameArchitecture.Tuning.Editing
                 Assembly assembly = type.Assembly;
                 bool related = tunableAssemblies.Contains(assembly) ||
                                assembly.GetReferencedAssemblies().Any(r => tunableAssemblyNames.Contains(r.Name));
-                if (related && CollectTunables(type, "", 0).Any())
+                if (related && TunableFields.For(type).Count > 0)
                     yield return type;
             }
         }
-
-        /// <summary>Walks a type's serialized fields, yielding the property path of every [Tunable] one.</summary>
-        private static IEnumerable<(string propertyPath, TunableAttribute attribute)> CollectTunables(Type type, string prefix, int depth)
-        {
-            if (depth > MaxNestingDepth)
-                yield break;
-
-            // Base classes first, so inherited fields come first (as in the Inspector)
-            var hierarchy = new List<Type>();
-            for (Type t = type; t != null && t != typeof(ScriptableObject) && t != typeof(object); t = t.BaseType)
-                hierarchy.Insert(0, t);
-
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-            foreach (FieldInfo field in hierarchy.SelectMany(t => t.GetFields(flags)))
-            {
-                if (!IsSerialized(field))
-                    continue;
-
-                string path = prefix + field.Name;
-                var attribute = field.GetCustomAttribute<TunableAttribute>();
-                if (attribute != null)
-                {
-                    yield return (path, attribute);
-                    continue;
-                }
-
-                if (IsNestedSerializable(field.FieldType))
-                {
-                    foreach (var nested in CollectTunables(field.FieldType, path + ".", depth + 1))
-                        yield return nested;
-                }
-            }
-        }
-
-        private static bool IsSerialized(FieldInfo field)
-        {
-            if (field.IsStatic || field.IsInitOnly || field.IsNotSerialized)
-                return false;
-            return field.IsPublic || field.IsDefined(typeof(SerializeField), true);
-        }
-
-        /// <summary>Plain [Serializable] class or struct that Unity serializes inline (where nested tunables can live).</summary>
-        private static bool IsNestedSerializable(Type type) =>
-            !type.IsPrimitive && !type.IsEnum && !type.IsArray && type != typeof(string) &&
-            !typeof(Object).IsAssignableFrom(type) &&
-            !(type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>)) &&
-            type.IsDefined(typeof(SerializableAttribute), false) &&
-            type.Namespace?.StartsWith("UnityEngine") != true;
 
         private static IEnumerable<Object> FindAssets(Type type)
         {
@@ -290,7 +243,7 @@ namespace GameArchitecture.Tuning.Editing
             {
                 SerializedProperty property = serializedObject.FindProperty(path);
                 if (property != null && (showAll || Matches(property.displayName)))
-                    EditorGUILayout.PropertyField(property, true);
+                    TunableGUI.PropertyField(property, node.ReadOnlyPaths.Contains(path));
             }
 
             foreach (Node child in node.Children)

@@ -155,81 +155,13 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4ae3630f6118498bb72bba3de95d984c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Gameplay.Player.MovementComponent
+  m_EditorClassIdentifier: Assembly-CSharp::Gameplay.Player.BallMotor
   input: {fileID: 4230772384755431058}
   config: {fileID: 11400000, guid: 769379b20bc140febacc11c369d2041e, type: 2}
   groundLayers:
     serializedVersion: 2
     m_Bits: 4294967295
   groundCheckDistance: 0.1
-  wheelbase: 1.05
-  maxSteerAngle:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 35
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 3
-      value: 20
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 6
-      value: 10
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 12
-      value: 5
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 20
-      value: 3
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  steerRate: 120
-  minTurnSpeed: 0.3
-  drivetrain:
-    gears:
-    - 2.5
-    - 3.5
-    - 4.5
-    - 5.5
-    - 6.5
-    startGear: 1
-    maxCadence: 1.5
-    lowestGearAcceleration: 4
-    deadSpotForce: 0.25
-  brakeDeceleration: 6
-  rollingResistance: 0.15
-  skidSlipSpeed: 0.5
 --- !u!114 &4959604661307075644
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -241,7 +173,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 438dd37f267b49bf9f4263f9ce066050, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Gameplay.Player.BicycleComponent
+  m_EditorClassIdentifier: Assembly-CSharp::Gameplay.Player.BicycleDriver
   rigPrefab: {fileID: 7276996565490331165, guid: 6f1f9e083b3408a4d84e8251f09e0fa0, type: 3}
   rig: {fileID: 0}
   tiltSharpness: 12

@@ -12,3 +12,91 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 451bc3abb5bd6c537ed32be7255f4e48, type: 3}
   m_Name: BikeConfig
   m_EditorClassIdentifier: Assembly-CSharp::Gameplay.Player.BikeConfig
+  tightestTurnRadius: 1
+  corneringGrip: 1.1
+  steeringSeconds: 0.2
+  turnOverview:
+  - speedKmh: 10
+    radiusMetres: 1
+    uTurnSeconds: 1.1309733
+  - speedKmh: 20
+    radiusMetres: 2.8601797
+    uTurnSeconds: 1.6173935
+  - speedKmh: 30
+    radiusMetres: 6.435405
+    uTurnSeconds: 2.4260902
+  - speedKmh: 45
+    radiusMetres: 14.479658
+    uTurnSeconds: 3.6391351
+  drivetrain:
+    gearCount: 5
+    firstGearTopSpeedKmh: 20
+    lastGearTopSpeedKmh: 60
+    gearSpacing:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 2
+        outSlope: 2
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    startGear: 2
+    gearOverview:
+    - gear: 1
+      topSpeedKmh: 20
+      boostKmh: 5.4
+      accelKmhPerSecond: 8.1
+      barRpm: 90
+      staminaSeconds: 17
+    - gear: 2
+      topSpeedKmh: 22.500002
+      boostKmh: 5.65
+      accelKmhPerSecond: 7.5333333
+      barRpm: 80
+      staminaSeconds: 15.111111
+    - gear: 3
+      topSpeedKmh: 30.000002
+      boostKmh: 6.4
+      accelKmhPerSecond: 6.4
+      barRpm: 60
+      staminaSeconds: 11.333333
+    - gear: 4
+      topSpeedKmh: 42.5
+      boostKmh: 7.6499996
+      accelKmhPerSecond: 5.3999996
+      barRpm: 42.35294
+      staminaSeconds: 8
+    - gear: 5
+      topSpeedKmh: 60.000004
+      boostKmh: 9.4
+      accelKmhPerSecond: 4.7
+      barRpm: 30
+      staminaSeconds: 5.6666665
+    firstGearRpm: 90
+    switchLeniencyPercent: 6
+    firstGearBoostKmh: 5.4
+    lastGearBoostKmh: 9.4
+  stamina:
+    pedallingSeconds: 17
+    refillSeconds: 10
+    refillDelay: 1
+    tiredBelowPercent: 30
+    exhaustedBarSpeedPercent: 40
+  brakeKmhPerSecond: 21.6
+  coastingKmhPerSecond: 0.2

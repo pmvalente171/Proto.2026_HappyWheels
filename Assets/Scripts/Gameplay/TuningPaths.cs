@@ -11,14 +11,12 @@
     {
         public const string Steering = "Steering";
 
-        public const string Drivetrain = "Drivetrain";
+        public const string Drivetrain = "Pedalling";
         public const string DrivetrainGears = Drivetrain + "/Gears";
         public const string DrivetrainBoost = Drivetrain + "/Boost";
 
         public const string Stamina = "Stamina";
-        public const string StaminaTired = Stamina + "/Tiredness";
 
         public const string Braking = "Braking";
-        public const string Feedback = "Feedback";
     }
 }

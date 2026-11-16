@@ -16,8 +16,20 @@ namespace Gameplay.Player
         [SerializeField, Min(0f)] private float bottomMargin = 60f;
 
         private BallMotor _motor;
+        private float _lastSpeedKmh;
+        private float _slowdown; // km/h lost per second, smoothed
 
         private void Awake() => _motor = GetComponent<BallMotor>();
+
+        // Measures how fast the bike is actually slowing down, to compare with Coasting Km/h Per Second
+        private void FixedUpdate()
+        {
+            float dt = Time.fixedDeltaTime;
+            float speed = _motor.ForwardSpeed * 3.6f;
+            float slowdown = (_lastSpeedKmh - speed) / dt;
+            _lastSpeedKmh = speed;
+            _slowdown = Mathf.Lerp(_slowdown, slowdown, 1f - Mathf.Exp(-dt / 0.5f)); // ~0.5 s smoothing
+        }
 
         private void OnGUI()
         {
@@ -26,7 +38,7 @@ namespace Gameplay.Player
 
             Drivetrain d = _motor.Drivetrain;
 
-            float width = maxBarWidth * d.Development / d.MaxDevelopment;
+            float width = maxBarWidth * d.BarLength;
             float x = (Screen.width - width) * 0.5f;
             float y = Screen.height - bottomMargin - barHeight;
             var bar = new Rect(x, y, width, barHeight);
@@ -62,6 +74,8 @@ namespace Gameplay.Player
             string stats = $"Gear {d.Gear + 1}/{d.GearCount}   " +
                            $"{_motor.ForwardSpeed * 3.6f:0} km/h   " +
                            $"{d.Cadence * 60f:0} rpm" +
+                           (!d.IsPushing && !d.IsBoosting && _motor.IsGrounded && Mathf.Abs(_motor.ForwardSpeed) > 0.3f
+                               ? $"   coasting {-_slowdown:+0.0;-0.0} km/h/s" : "") +
                            (_motor.BrakeInput > 0f ? "   BRAKE" : "") +
                            (_motor.IsSkidding ? "   SKID" : "") + (d.IsBoosting ? "   BOOST" : "") + (s.IsRecovering ? "   RECOVERING" : "");
             DrawLabel(new Rect(0f, y - 26f, Screen.width, 22f), stats, Color.white, TextAnchor.MiddleCenter);

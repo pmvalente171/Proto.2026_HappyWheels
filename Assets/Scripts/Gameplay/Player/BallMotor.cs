@@ -4,8 +4,9 @@ namespace Gameplay.Player
 {
     /// <summary>
     /// Bicycle physics on a rolling sphere. The sphere acts as the wheel: it rolls with real PhysX friction, but it
-    /// may only spin around its axle (perpendicular to the heading). Steering turns the axle, and contact friction
-    /// drags the ball into the turn like a tire. Grip therefore comes from the physics materials (player × ground).
+    /// may only spin around its axle (perpendicular to the heading). Steering turns the axle and the velocity with it,
+    /// up to Cornering Grip (see <see cref="BikeConfig"/>); beyond that the ball slides and contact friction from the
+    /// physics materials (player × ground) scrubs off the sideways slip.
     /// Input comes from the Bike action map: alternate Q/E to pedal (see <see cref="Drivetrain"/>),
     /// arrows to steer, W/S to change gear, Space to brake.
     /// </summary>
@@ -14,6 +15,10 @@ namespace Gameplay.Player
     {
         // High enough to never limit speed (Unity's default of 7 rad/s caps a 0.5 m ball at ~3.5 m/s)
         private const float MaxSpin = 200f;
+        // Below this speed (m/s) turning behaves as if moving at it, so a stopped bike can still pivot slowly
+        private const float MinTurnSpeed = 0.3f;
+        // Sliding speed at the contact patch (m/s) above which the bike counts as skidding
+        private const float SkidSlipSpeed = 0.5f;
 
         [Header("References")]
         [SerializeField] private InputBootstrap input;
@@ -65,10 +70,10 @@ namespace Gameplay.Player
         public float ForwardSpeed { get; private set; }
         /// <summary>Surface speed of the wheel (m/s). Differs from ForwardSpeed while skidding or with a locked wheel.</summary>
         public float WheelSpeed { get; private set; }
-        /// <summary>Current handlebar angle in degrees; positive = right.</summary>
-        public float SteerAngle { get; private set; }
+        /// <summary>How far the handlebar is turned, -1 (full left) to +1 (full right). Follows SteerInput over Steering Seconds.</summary>
+        public float SteerAmount { get; private set; }
         public bool IsGrounded { get; private set; }
-        /// <summary>True when the contact patch slides faster than Skid Slip Speed (cornering too hard, locked brake...).</summary>
+        /// <summary>True when the contact patch slides sideways or along the ground (locked brake, hard landing...).</summary>
         public bool IsSkidding { get; private set; }
         public Vector3 GroundNormal { get; private set; } = Vector3.up;
         /// <summary>World radius of the sphere collider.</summary>
@@ -78,6 +83,11 @@ namespace Gameplay.Player
         {
             _rigidbody = GetComponent<Rigidbody>();
             _rigidbody.maxAngularVelocity = MaxSpin;
+
+            // All coasting slowdown comes from BikeConfig (Coasting Km/h Per Second), so it can be tuned in one place.
+            // Rigidbody damping would add hidden, speed-dependent drag on top of it.
+            _rigidbody.linearDamping = 0f;
+            _rigidbody.angularDamping = 0f;
 
             Radius = ComputeRadius();
             _castRadius = Radius * 0.95f;
@@ -128,12 +138,15 @@ namespace Gameplay.Player
             Vector3 velocity = _rigidbody.linearVelocity;
 
             // The handlebar turns at a limited rate, even in the air
-            float targetSteer = SteerInput * config.maxSteerAngle.Evaluate(Mathf.Abs(Vector3.Dot(velocity, forward)));
-            SteerAngle = Mathf.MoveTowards(SteerAngle, targetSteer, config.steerRate * dt);
+            SteerAmount = Mathf.MoveTowards(SteerAmount, SteerInput, dt / config.steeringSeconds);
 
             // No tire contact in the air: the heading only changes on the ground
             if (IsGrounded)
-                forward = Steer(forward, up, Vector3.Dot(velocity, forward), dt);
+            {
+                Vector3 newForward = Steer(forward, up, Vector3.Dot(velocity, forward), dt);
+                velocity = Corner(velocity, forward, newForward, up, dt);
+                forward = newForward;
+            }
             _heading = forward;
             ForwardSpeed = Vector3.Dot(velocity, forward);
 
@@ -152,18 +165,46 @@ namespace Gameplay.Player
 
             // Contact patch velocity = ball velocity minus the wheel's surface velocity
             Vector3 slip = Vector3.ProjectOnPlane(velocity - forward * WheelSpeed, up);
-            IsSkidding = IsGrounded && slip.magnitude > config.skidSlipSpeed;
+            IsSkidding = IsGrounded && slip.magnitude > SkidSlipSpeed;
         }
 
-        /// <summary>Rotates the heading using the kinematic bicycle model: yaw rate = v / wheelbase × tan(steer).</summary>
+        /// <summary>
+        /// Rotates the heading along a circle: yaw rate = speed × curvature. Full steering gives the tightest turn
+        /// the config allows at this speed (Tightest Turn Radius when slow, limited by Cornering Grip when fast).
+        /// </summary>
         private Vector3 Steer(Vector3 forward, Vector3 up, float forwardSpeed, float dt)
         {
-            float turnSpeed = Mathf.Abs(forwardSpeed) < config.minTurnSpeed
-                ? config.minTurnSpeed * Mathf.Sign(forwardSpeed)
+            // Below walking pace, turn as if moving slowly, so a stopped bike can still pivot a little
+            float turnSpeed = Mathf.Abs(forwardSpeed) < MinTurnSpeed
+                ? MinTurnSpeed * (forwardSpeed < 0f ? -1f : 1f)
                 : forwardSpeed;
 
-            float yawRate = turnSpeed / config.wheelbase * Mathf.Tan(SteerAngle * Mathf.Deg2Rad); // rad/s
+            float yawRate = turnSpeed * SteerAmount * config.MaxTurnCurvature(Mathf.Abs(turnSpeed)); // rad/s
             return Quaternion.AngleAxis(yawRate * Mathf.Rad2Deg * dt, up) * forward;
+        }
+
+        /// <summary>
+        /// Turns the ball's velocity along with the heading, like a tire rolling along a curve: the grip pushes
+        /// sideways only, so no speed is lost. That works up to Cornering Grip; past it the velocity only partly
+        /// follows, and the leftover sideways slip is scrubbed off by contact friction (a skid, which costs speed).
+        /// </summary>
+        private Vector3 Corner(Vector3 velocity, Vector3 oldForward, Vector3 newForward, Vector3 up, float dt)
+        {
+            float yaw = Vector3.SignedAngle(oldForward, newForward, up); // degrees this step
+            if (Mathf.Approximately(yaw, 0f))
+                return velocity;
+
+            // The wheel turns with the frame, so its spin carries over to the new axle
+            _rigidbody.angularVelocity = Quaternion.AngleAxis(yaw, up) * _rigidbody.angularVelocity;
+
+            // Sideways acceleration needed to follow the heading fully this step, vs what the tires can give
+            Vector3 planar = Vector3.ProjectOnPlane(velocity, up);
+            float needed = planar.magnitude * Mathf.Abs(yaw) * Mathf.Deg2Rad / dt;
+            float fraction = needed > config.CorneringGrip ? config.CorneringGrip / needed : 1f;
+
+            velocity = Quaternion.AngleAxis(yaw * fraction, up) * planar + (velocity - planar);
+            _rigidbody.linearVelocity = velocity;
+            return velocity;
         }
 
         /// <summary>
@@ -184,7 +225,7 @@ namespace Gameplay.Player
 
             // Bikes don't reverse: braking and rolling resistance only slow the wheel, to zero at most.
             // A strong brake stops the wheel faster than friction can stop the ball: that's a locked, skidding wheel.
-            float resistance = (BrakeInput * config.brakeDeceleration + config.rollingResistance) * spinPerSpeed * dt;
+            float resistance = (BrakeInput * config.BrakeDeceleration + config.RollingResistance) * spinPerSpeed * dt;
             spin -= Mathf.Sign(spin) * Mathf.Min(resistance, Mathf.Abs(spin));
 
             return spin;
