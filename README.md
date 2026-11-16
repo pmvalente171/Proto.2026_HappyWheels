@@ -1,15 +1,16 @@
 # Proto 2026 – Happy Wheels (shelved)
 
-A bicycle prototype. **Status: shelved.** The pedalling works, but it didn't add enough to the game's real focus,
-which is what you do between the pedalling. This README records how the character controller works, in case any
-part of it is worth reusing.
+A bicycle delivery game prototype: deliver packages around a city, and hit something too hard and the rider goes
+flying as a ragdoll. **Status: shelved.** The pedalling works, but it didn't add enough to the game's real focus,
+which is what you do between the pedalling. This README records how it all works, in case any part of it is worth
+reusing.
 
 > **Note:** this project was vibe coded. Much of the code was written by an AI assistant (Claude), guided by
 > design direction and playtest feedback rather than careful engineering. Read and test anything before you
 > reuse it.
 
-Unity 6000.3, URP, Input System. Open `Assets/Scenes/SampleScene.unity` and press Play. A random street level
-is built when the game starts (see [Test level](#test-level)).
+Unity 6000.3, URP, Input System. Open `Assets/Scenes/SampleScene.unity` and press Play. A random city is built
+when the game starts (see [Test level](#test-level)), and the first delivery job appears.
 
 ## Controls
 
@@ -19,6 +20,7 @@ is built when the game starts (see [Test level](#test-level)).
 | ← / → | Steer |
 | W / S | Shift gear up / down |
 | Space | Brake |
+| R | Get back on the bike after a crash (or reset if stuck) |
 
 ## How it works
 
@@ -32,10 +34,13 @@ Player_Pre (prefab)
 │   ├─ Drivetrain                pedal bar, gears, speed bursts      (plain C# class)
 │   └─ Stamina                   drains while pedalling, slows the bar (plain C# class)
 ├─ BicycleDriver                 spawns the bike visuals and pushes the sphere's pose into them
+├─ CrashController               detects crashes, ragdolls the rider, respawns
+│   └─ RiderBody                 the rider made of boxes; seated visuals or ragdoll (plain C# class)
+├─ BikeJuice                     wheel/fork/crank animation, effects, sounds, camera shake, slow motion
 ├─ InputBootstrap                owns the generated GameInput actions
 └─ PedalBarDebugUI               temporary IMGUI HUD: pedal bar, stamina, gear, speed
 
-BicycleRig (spawned, unparented) visuals only: no Rigidbody, no colliders, knows nothing about the player
+BicycleRig (spawned, unparented) visuals only while riding: no Rigidbody, no colliders, knows nothing about the player
 ```
 
 All tuning values are in one asset, `Assets/Data/BikeConfig.asset` (`BikeConfig`). `BallMotor`, `Drivetrain` and
@@ -123,10 +128,79 @@ player starts at the central intersection.
 - **Roads** get kick ramps, road hills, speed bumps, parked cars or knockable cones.
 - **Seed** set to 0 gives a new city each play. The seed is logged to the Console so a good city can be replayed.
 - **Hide On Start** switches off the scene's old test ramps and wall.
+- It also lists one **delivery spot** on the sidewalk along each side of every block, for the delivery loop.
+
+## Crashes and ragdolls
+
+`Gameplay/Player/CrashController.cs`, on the player prefab. A seated rider made of boxes (`RiderBody`) sits on the
+bike. When the sphere hits something:
+
+- **Steep surfaces** (buildings, walls, car sides): the speed going *into* the surface is compared with *Wall
+  Crash Km/h* (22). Glancing hits only count the head-on part of the speed.
+- **Speed bumps** (yellow and black, marked with the `CrashBump` component): riding over one faster than *Bump
+  Crash Km/h* (28) throws the rider over the handlebars.
+- **Ground-like surfaces** (landings, curbs, ramps): the falling speed is compared with *Hard Landing Km/h* (35,
+  about a 5 m drop).
+- **Light objects** (under 20 kg, e.g. cones) are knocked away and never cause a crash.
+
+On a crash, the ball freezes. The rider turns into a ragdoll (rigidbodies plus character joints) that keeps the
+bike's momentum, with a little pop upwards, and the bike gets a box collider and tumbles too. After *Respawn
+Seconds* (3), or straight away on **R**, everything is reset at a spot where the bike was riding normally about
+1.5 s before the crash.
+
+## Delivery loop
+
+`Gameplay/Level/DeliveryManager.cs`, on the *Street Level Generator* object:
+
+1. Ride to the **blue marker** to pick up a package. It appears on the bike's rear rack.
+2. Ride to the **yellow marker** before the timer runs out. Distance ÷ *Expected Speed* + *Extra Seconds* gives the
+   time limit. The drop-off is between *Min* and *Max Delivery Metres* from the pickup.
+3. Get paid $5 + $1 per 20 m + $1 per second left, and the next job appears.
+4. **Crash while carrying the package** and it goes flying: the delivery fails and a new job is handed out when you
+   respawn. Running out of time also fails it.
+
+The HUD at the top of the screen shows money, deliveries, the current task and timer, and an arrow plus the
+distance to the target.
+
+## Juice
+
+All feedback, with no effect on handling. Everything is built in code (primitives, generated particles,
+synthesised sounds), so no assets are needed. It lives in `Gameplay/Juice`.
+
+- **Bike** (`BikeJuice`, on the player prefab):
+  - wheels spin, with spokes so you can see it;
+  - the handlebar and front wheel turn with the steering;
+  - cranks and pedals turn with the pedal bar, and the rider's legs follow the pedals and their body sways with each
+    stroke.
+- **Lean** (`BicycleDriver`): the bike leans into turns like a real one, by atan(speed × turn rate ÷ g), up to *Max
+  Lean Degrees*.
+- **Camera** (`CameraJuice`, added to the main camera automatically):
+  - shake on impacts, cones and crashes;
+  - a field-of-view kick that grows with speed.
+  - It's applied just before rendering and undone after, so it doesn't fight Cinemachine.
+- **Effects** (`JuiceFx`): skid marks and tyre smoke, dust on impacts and crashes, sparks off knocked cones, a poof
+  on respawn, a burst on pickup and confetti on delivery.
+- **Sound** (`JuiceAudio`, synthesised placeholders):
+  - while riding: wind that gets louder with speed, freewheel ticking while coasting, skid hiss;
+  - impacts and crashes: thuds, a bonk for cones, a whoosh on a crash;
+  - deliveries: a chime on pickup, a bell on delivery, a fail buzz, and a countdown tick for the last 5 seconds.
+- **Crash slow motion**: time drops to 25% and eases back over about 1 second.
+- **HUD**:
+  - the pedal bar flashes and pops on every completed rotation;
+  - money rolls up in green;
+  - messages punch in and fade out;
+  - the timer pulses red under 10 seconds;
+  - the pickup marker pulses, with a spinning package floating over it.
+
+*BikeJuice* settings: FOV kick and its speed, shake strength, crash slow motion on or off, and volume.
 
 ## Known limitations
 
-- The HUD (`PedalBarDebugUI`) is throwaway IMGUI.
-- `BicycleRig` only follows position and rotation. There is no wheel spin, lean, handlebar or rider IK yet.
+- The HUDs (`PedalBarDebugUI`, `DeliveryManager`) are throwaway IMGUI.
+- The rider is a fixed pose with no IK. Only the legs follow the pedals; the hands don't follow the handlebar
+  when it turns.
+- Sounds are synthesised placeholders.
+- Crash detection only looks at the sphere (the wheel). Something that would only hit the rider's head or body
+  (a low beam, for example) doesn't count.
 - Steering always stays within the grip, so you can't skid by steering. Braking and landings can still skid.
 - There is no air drag, on purpose, so each gear's top speed means exactly what the setting says.

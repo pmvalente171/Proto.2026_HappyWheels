@@ -20,9 +20,16 @@ namespace Gameplay.Player
         [Tooltip("How quickly the bicycle tilts to match the ground normal (higher = snappier).")]
         [SerializeField] private float tiltSharpness = 12f;
 
+        [Tooltip("Most the bike leans into a turn, in degrees. The lean itself comes from speed and how tight the turn is, like a real bike.")]
+        [SerializeField, Range(0f, 60f)] private float maxLeanDegrees = 35f;
+
+        private const float LeanSharpness = 8f;
+
         private BallMotor _motor;
         private bool _ownsRig;
         private Vector3 _up = Vector3.up;
+        private Vector3 _lastForward = Vector3.forward;
+        private float _lean; // degrees, positive = leaning right
 
         public BicycleRig Rig => rig;
 
@@ -79,9 +86,26 @@ namespace Gameplay.Player
                 Destroy(rig.gameObject);
         }
 
+        /// <summary>
+        /// False lets something else move the rig (e.g. physics after a crash). Setting it back to true snaps the
+        /// rig onto the ball again.
+        /// </summary>
+        public bool Following
+        {
+            get => _following;
+            set
+            {
+                if (value && !_following && rig)
+                    UpdatePose(0f, snap: true);
+                _following = value;
+            }
+        }
+        private bool _following = true;
+
         private void LateUpdate()
         {
-            UpdatePose(Time.deltaTime, snap: false);
+            if (_following)
+                UpdatePose(Time.deltaTime, snap: false);
         }
 
         private void UpdatePose(float deltaTime, bool snap)
@@ -103,8 +127,16 @@ namespace Gameplay.Player
                 forward = Vector3.ProjectOnPlane(Vector3.forward, _up); // heading parallel to up; pick anything sane
             forward.Normalize();
 
-            // Move the rig, never this transform (the physics sphere)
-            rig.SetPose(groundPoint, Quaternion.LookRotation(forward, _up), grounded, _motor.ForwardSpeed);
+            // Lean into turns: a real bike leans so gravity balances the cornering force, angle = atan(v × turn rate / g)
+            float yawRate = deltaTime > 0f ? Vector3.SignedAngle(_lastForward, forward, _up) * Mathf.Deg2Rad / deltaTime : 0f;
+            _lastForward = forward;
+            float targetLean = grounded
+                ? Mathf.Clamp(Mathf.Atan(_motor.ForwardSpeed * yawRate / Physics.gravity.magnitude) * Mathf.Rad2Deg, -maxLeanDegrees, maxLeanDegrees)
+                : 0f;
+            _lean = snap ? targetLean : Mathf.Lerp(_lean, targetLean, Damp(LeanSharpness, deltaTime));
+
+            // Move the rig, never this transform (the physics sphere). Negative Z roll = lean right.
+            rig.SetPose(groundPoint, Quaternion.LookRotation(forward, _up) * Quaternion.Euler(0f, 0f, -_lean), grounded, _motor.ForwardSpeed);
         }
 
         /// <summary>Frame-rate independent smoothing factor.</summary>

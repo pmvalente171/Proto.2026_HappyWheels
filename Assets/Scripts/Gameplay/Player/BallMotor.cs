@@ -232,6 +232,37 @@ namespace Gameplay.Player
         }
 
         /// <summary>
+        /// Stops (or restarts) the ball: no physics, no collisions, no input. Used while the rider is off the bike after a crash.
+        /// </summary>
+        public void SetFrozen(bool frozen)
+        {
+            if (frozen && !_rigidbody.isKinematic)
+            {
+                _rigidbody.linearVelocity = Vector3.zero;
+                _rigidbody.angularVelocity = Vector3.zero;
+            }
+            _rigidbody.isKinematic = frozen;
+            if (TryGetComponent(out Collider ownCollider))
+                ownCollider.enabled = !frozen;
+            enabled = !frozen;
+        }
+
+        /// <summary>Moves the bike to <paramref name="position"/>, at rest, pointing along <paramref name="heading"/>.</summary>
+        public void Teleport(Vector3 position, Vector3 heading)
+        {
+            _rigidbody.position = position;
+            transform.position = position;
+            if (!_rigidbody.isKinematic)
+            {
+                _rigidbody.linearVelocity = Vector3.zero;
+                _rigidbody.angularVelocity = Vector3.zero;
+            }
+            _heading = _previousHeading = FlattenHeading(heading, Vector3.up);
+            SteerAmount = 0f;
+            ForwardSpeed = WheelSpeed = 0f;
+        }
+
+        /// <summary>
         /// Sphere-casts down from <paramref name="center"/> using this motor's ground settings.
         /// Public so visuals can test from the interpolated position.
         /// </summary>

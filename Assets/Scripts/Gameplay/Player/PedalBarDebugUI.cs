@@ -18,6 +18,8 @@ namespace Gameplay.Player
         private BallMotor _motor;
         private float _lastSpeedKmh;
         private float _slowdown; // km/h lost per second, smoothed
+        private float _lastPhase;
+        private float _flash;    // 1 right after a completed rotation, fading to 0
 
         private void Awake() => _motor = GetComponent<BallMotor>();
 
@@ -38,13 +40,25 @@ namespace Gameplay.Player
 
             Drivetrain d = _motor.Drivetrain;
 
-            float width = maxBarWidth * d.BarLength;
+            // Flash and pop the bar each time a rotation completes (the crank wraps from ~1 back to ~0)
+            if (Event.current.type == EventType.Repaint)
+            {
+                if (d.CrankPhase < _lastPhase - 0.5f)
+                    _flash = 1f;
+                _lastPhase = d.CrankPhase;
+                _flash = Mathf.Max(0f, _flash - Time.unscaledDeltaTime * 4f);
+            }
+
+            float pop = 1f + _flash * 0.15f;
+            float width = maxBarWidth * d.BarLength * pop;
+            float height = barHeight * pop;
             float x = (Screen.width - width) * 0.5f;
-            float y = Screen.height - bottomMargin - barHeight;
-            var bar = new Rect(x, y, width, barHeight);
+            float y = Screen.height - bottomMargin - barHeight - (height - barHeight) * 0.5f;
+            var bar = new Rect(x, y, width, height);
 
             // Track
-            DrawRect(bar, new Color(0f, 0f, 0f, 0.6f));
+            DrawRect(bar, Color.Lerp(new Color(0f, 0f, 0f, 0.6f), new Color(0.3f, 1f, 0.4f, 0.8f), _flash));
+            y += (height - barHeight) * 0.5f; // everything else stays its normal height, centred on the popped track
 
             // Switch windows at both ends: where either key pushes. Brighter while the marker is inside one.
             float zone = width * d.SwitchWindowBarFraction;

@@ -40,6 +40,8 @@ namespace Gameplay.Level
         private static readonly Color Leaves = new(0.25f, 0.5f, 0.25f);
         private static readonly Color RampColor = new(1f, 0.55f, 0.15f);
         private static readonly Color ConeColor = new(1f, 0.4f, 0.05f);
+        private static readonly Color BumpYellow = new(1f, 0.85f, 0.1f);
+        private static readonly Color BumpBlack = new(0.08f, 0.08f, 0.08f);
         private static readonly Color[] BuildingColors =
         {
             new(0.85f, 0.75f, 0.6f), new(0.7f, 0.45f, 0.35f), new(0.55f, 0.6f, 0.7f),
@@ -51,13 +53,18 @@ namespace Gameplay.Level
             new(0.1f, 0.1f, 0.1f), new(0.9f, 0.75f, 0.1f), new(0.3f, 0.6f, 0.35f),
         };
 
-        private readonly Dictionary<Color, Material> _materials = new();
+        private readonly List<Vector3> _deliverySpots = new();
         private System.Random _random;
         private Transform _root;
         private int _groundLayer;
-        private Shader _shader;
 
         private float Pitch => blockSize + roadWidth;
+
+        /// <summary>
+        /// World positions on the sidewalks, by the road, that are always clear (for delivery pickups and drop-offs).
+        /// Filled in Awake.
+        /// </summary>
+        public IReadOnlyList<Vector3> DeliverySpots => _deliverySpots;
 
         private void Awake()
         {
@@ -70,7 +77,6 @@ namespace Gameplay.Level
 
             _groundLayer = LayerMask.NameToLayer("Ground");
             if (_groundLayer < 0) _groundLayer = 0;
-            _shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
 
             _root = new GameObject("Generated City").transform;
             _root.SetPositionAndRotation(new Vector3(transform.position.x, 0f, transform.position.z), Quaternion.identity);
@@ -109,6 +115,14 @@ namespace Gameplay.Level
             Box("Sidewalk", centre + Vector3.up * CurbHeight * 0.5f, new Vector3(blockSize, CurbHeight, blockSize), Sidewalk);
             float inner = blockSize - SidewalkWidth * 2f;
             Vector3 top = centre + Vector3.up * CurbHeight;
+
+            // One delivery spot on the sidewalk along each side of the block (the sidewalk ring is never built on)
+            for (int side = 0; side < 4; side++)
+            {
+                Quaternion facing = Quaternion.Euler(0f, 90f * side, 0f);
+                Vector3 local = top + facing * new Vector3(Range(-inner / 3f, inner / 3f), 0f, blockSize / 2f - SidewalkWidth / 2f);
+                _deliverySpots.Add(_root.TransformPoint(local));
+            }
 
             float roll = Range(0f, 1f);
             if (roll < 0.55f) Buildings(top, inner);
@@ -210,10 +224,18 @@ namespace Gameplay.Level
                     break;
                 }
 
-                case 2: // speed bumps
+                case 2: // speed bumps: too fast over one throws the rider off (see CrashBump)
                     for (int i = -1; i <= 1; i += 2)
-                        Box("Speed Bump", centre + along * i * blockSize * 0.25f + Vector3.up * 0.06f, facing,
-                            new Vector3(roadWidth, 0.12f, 0.8f), RampColor);
+                    {
+                        Vector3 bumpCentre = centre + along * i * blockSize * 0.25f;
+                        Box("Speed Bump", bumpCentre + Vector3.up * 0.09f, facing, new Vector3(roadWidth, 0.18f, 0.9f), BumpYellow)
+                            .AddComponent<CrashBump>();
+
+                        // Black warning stripes on top (visual only)
+                        for (float s = -roadWidth / 2f + 0.5f; s < roadWidth / 2f; s += 2f)
+                            Box("Stripe", bumpCentre + side * (s + 0.5f) + Vector3.up * 0.185f, facing,
+                                new Vector3(1f, 0.01f, 0.92f), BumpBlack, collide: false);
+                    }
                     break;
 
                 case 3: // parked cars along the curb
@@ -352,17 +374,7 @@ namespace Gameplay.Level
             return mesh;
         }
 
-        private Material MaterialFor(Color color)
-        {
-            if (_materials.TryGetValue(color, out Material material))
-                return material;
-
-            material = new Material(_shader) { color = color };
-            if (material.HasProperty("_BaseColor"))
-                material.SetColor("_BaseColor", color);
-            _materials[color] = material;
-            return material;
-        }
+        private static Material MaterialFor(Color color) => ColorMaterials.Lit(color);
 
         #endregion
 
