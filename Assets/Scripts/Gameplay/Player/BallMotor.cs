@@ -6,7 +6,8 @@ namespace Gameplay.Player
     /// Bicycle physics on a rolling sphere. The sphere acts as the wheel: it rolls with real PhysX friction, but it
     /// may only spin around its axle (perpendicular to the heading). Steering turns the axle, and contact friction
     /// drags the ball into the turn like a tire. Grip therefore comes from the physics materials (player × ground).
-    /// Controls are bike-relative: y = pedal (+) / brake (-), x = steer.
+    /// Input comes from the Bike action map: alternate Q/E to pedal (see <see cref="Drivetrain"/>),
+    /// arrows to steer, W/S to change gear, Space to brake.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public class BallMotor : MonoBehaviour
@@ -23,45 +24,29 @@ namespace Gameplay.Player
         [Tooltip("Extra distance below the sphere's surface that still counts as grounded.")]
         [SerializeField, Min(0f)] private float groundCheckDistance = 0.1f;
 
-        [Header("Steering")]
-        [Tooltip("Distance between the wheel axles (m). Longer = wider turns.")]
-        [SerializeField, Min(0.1f)] private float wheelbase = 1.05f;
-        [Tooltip("Max handlebar angle (degrees, Y axis) at a given forward speed (m/s, X axis). Lower at speed = harder to turn fast.")]
-        [SerializeField] private AnimationCurve maxSteerAngle = new(
-            new Keyframe(0f, 35f), new Keyframe(3f, 20f), new Keyframe(6f, 10f),
-            new Keyframe(12f, 5f), new Keyframe(20f, 3f));
-        [Tooltip("How fast the handlebar turns, in degrees per second.")]
-        [SerializeField, Min(1f)] private float steerRate = 120f;
-        [Tooltip("When slower than this (m/s), turning behaves as if moving at this speed, so a stopped bike can still pivot slowly. 0 = fully realistic: no turning without moving.")]
-        [SerializeField, Min(0f)] private float minTurnSpeed = 0.3f;
+        [Header("Tuning")]
+        [Tooltip("Steering, pedalling, stamina and braking values. Edit them live in Window > Tuning.")]
+        [SerializeField] private BikeConfig config;
 
-        [Header("Pedalling")]
-        [Tooltip("Acceleration from pedalling at a standstill (m/s²). Fades to zero at Max Pedal Speed.")]
-        [SerializeField, Min(0f)] private float pedalAcceleration = 3f;
-        [Tooltip("Fastest speed the rider can pedal to (m/s). Gravity can still take the bike faster downhill.")]
-        [SerializeField, Min(0.1f)] private float maxPedalSpeed = 8f;
-        [Tooltip("Deceleration at full brake (m/s²). Brake harder than the friction allows and the wheel locks and skids.")]
-        [SerializeField, Min(0f)] private float brakeDeceleration = 6f;
-        [Tooltip("Constant slowdown from the tires rolling (m/s²), so the bike coasts to a stop on flat ground.")]
-        [SerializeField, Min(0f)] private float rollingResistance = 0.15f;
-
-        [Header("Feedback")]
-        [Tooltip("Sliding speed at the contact patch (m/s) above which the bike counts as skidding.")]
-        [SerializeField, Min(0f)] private float skidSlipSpeed = 0.5f;
-
+        private Drivetrain _drivetrain;
+        private Stamina _stamina;
         private Rigidbody _rigidbody;
         private float _castRadius;
-        private Vector2 _rideInput;
 
         private Vector3 _heading = Vector3.forward;
         private Vector3 _previousHeading = Vector3.forward;
 
-        /// <summary>x = steer (-1 left, +1 right), y = pedal (+) / brake (-). Clamped to length 1.</summary>
-        public Vector2 RideInput
-        {
-            get => _rideInput;
-            set => _rideInput = Vector2.ClampMagnitude(value, 1f);
-        }
+        /// <summary>Steering input, -1 (left) to +1 (right).</summary>
+        public float SteerInput { get; private set; }
+        /// <summary>Brake input, 0 to 1.</summary>
+        public float BrakeInput { get; private set; }
+        public bool LeftPedalHeld { get; private set; }
+        public bool RightPedalHeld { get; private set; }
+
+        /// <summary>Pedals, crank bar and gears.</summary>
+        public Drivetrain Drivetrain => _drivetrain;
+        /// <summary>Rider stamina, drained by pedalling.</summary>
+        public Stamina Stamina => _stamina;
 
         /// <summary>Direction the bike points, as of the last physics step.</summary>
         public Vector3 Heading => _heading;
@@ -99,6 +84,17 @@ namespace Gameplay.Player
 
             _heading = _previousHeading = FlattenHeading(transform.forward, Vector3.up);
 
+            if (!config)
+            {
+                Debug.LogError($"{nameof(BallMotor)} on '{name}' has no {nameof(BikeConfig)} assigned.", this);
+                enabled = false;
+                return;
+            }
+
+            // Both read the config's settings live, so edits during play take effect immediately
+            _drivetrain = new Drivetrain(config.drivetrain);
+            _stamina = new Stamina(config.stamina);
+
             if (!input)
             {
                 Debug.LogError($"{nameof(BallMotor)} on '{name}' has no {nameof(InputBootstrap)} assigned.", this);
@@ -108,7 +104,15 @@ namespace Gameplay.Player
 
         private void Update()
         {
-            RideInput = input.Actions.Player.Move.ReadValue<Vector2>();
+            var bike = input.Actions.Bike;
+            SteerInput = Mathf.Clamp(bike.Steer.ReadValue<float>(), -1f, 1f);
+            BrakeInput = Mathf.Clamp01(bike.Brake.ReadValue<float>());
+            LeftPedalHeld = bike.PedalLeft.IsPressed();
+            RightPedalHeld = bike.PedalRight.IsPressed();
+
+            // Gears change once per press, so they're handled here rather than in FixedUpdate
+            if (bike.GearUp.WasPressedThisFrame()) _drivetrain.ShiftUp();
+            if (bike.GearDown.WasPressedThisFrame()) _drivetrain.ShiftDown();
         }
 
         private void FixedUpdate()
@@ -124,8 +128,8 @@ namespace Gameplay.Player
             Vector3 velocity = _rigidbody.linearVelocity;
 
             // The handlebar turns at a limited rate, even in the air
-            float targetSteer = _rideInput.x * maxSteerAngle.Evaluate(Mathf.Abs(Vector3.Dot(velocity, forward)));
-            SteerAngle = Mathf.MoveTowards(SteerAngle, targetSteer, steerRate * dt);
+            float targetSteer = SteerInput * config.maxSteerAngle.Evaluate(Mathf.Abs(Vector3.Dot(velocity, forward)));
+            SteerAngle = Mathf.MoveTowards(SteerAngle, targetSteer, config.steerRate * dt);
 
             // No tire contact in the air: the heading only changes on the ground
             if (IsGrounded)
@@ -137,25 +141,28 @@ namespace Gameplay.Player
             // stops it rolling sideways, so friction at the contact patch acts as the tire's sideways grip.
             Vector3 axle = Vector3.Cross(up, forward);
             float spin = Vector3.Dot(_rigidbody.angularVelocity, axle); // rad/s, positive = rolling forward
+
+            float drive = _drivetrain.Step(LeftPedalHeld, RightPedalHeld, spin * Radius, IsGrounded, _stamina.BarSpeedMultiplier, dt);
+            _stamina.Tick(_drivetrain.IsPushing, _drivetrain.Effort, dt);
             if (IsGrounded)
-                spin = ApplyPedalsAndBrakes(spin);
+                spin = ApplyPedalsAndBrakes(spin, drive);
             _rigidbody.angularVelocity = axle * spin;
 
             WheelSpeed = spin * Radius;
 
             // Contact patch velocity = ball velocity minus the wheel's surface velocity
             Vector3 slip = Vector3.ProjectOnPlane(velocity - forward * WheelSpeed, up);
-            IsSkidding = IsGrounded && slip.magnitude > skidSlipSpeed;
+            IsSkidding = IsGrounded && slip.magnitude > config.skidSlipSpeed;
         }
 
         /// <summary>Rotates the heading using the kinematic bicycle model: yaw rate = v / wheelbase × tan(steer).</summary>
         private Vector3 Steer(Vector3 forward, Vector3 up, float forwardSpeed, float dt)
         {
-            float turnSpeed = Mathf.Abs(forwardSpeed) < minTurnSpeed
-                ? minTurnSpeed * Mathf.Sign(forwardSpeed)
+            float turnSpeed = Mathf.Abs(forwardSpeed) < config.minTurnSpeed
+                ? config.minTurnSpeed * Mathf.Sign(forwardSpeed)
                 : forwardSpeed;
 
-            float yawRate = turnSpeed / wheelbase * Mathf.Tan(SteerAngle * Mathf.Deg2Rad); // rad/s
+            float yawRate = turnSpeed / config.wheelbase * Mathf.Tan(SteerAngle * Mathf.Deg2Rad); // rad/s
             return Quaternion.AngleAxis(yawRate * Mathf.Rad2Deg * dt, up) * forward;
         }
 
@@ -163,24 +170,21 @@ namespace Gameplay.Player
         /// Changes the wheel's spin; contact friction then turns that into ball acceleration.
         /// Accelerations are given in m/s² of ball speed and converted to the spin change that produces them.
         /// </summary>
-        private float ApplyPedalsAndBrakes(float spin)
+        private float ApplyPedalsAndBrakes(float spin, float drive)
         {
             float dt = Time.fixedDeltaTime;
-            float pedal = Mathf.Max(_rideInput.y, 0f);
-            float brake = Mathf.Max(-_rideInput.y, 0f);
 
             // A spin change Δω on a rolling ball becomes Δv = Δω·r / k (the rest goes into rotation),
             // with k = 1 + m·r² / I. So to get Δv we need Δω = Δv·k / r.
             float inertia = Mathf.Max(_rigidbody.inertiaTensor.x, 0.0001f);
             float spinPerSpeed = (1f + _rigidbody.mass * Radius * Radius / inertia) / Radius;
 
-            // Human power: lots of push from a standstill, none at max pedal speed or above
-            float drive = pedal * pedalAcceleration * Mathf.Clamp01(1f - ForwardSpeed / maxPedalSpeed);
+            // Pedalling: speed bursts from completed rotations (see Drivetrain)
             spin += drive * spinPerSpeed * dt;
 
             // Bikes don't reverse: braking and rolling resistance only slow the wheel, to zero at most.
             // A strong brake stops the wheel faster than friction can stop the ball: that's a locked, skidding wheel.
-            float resistance = (brake * brakeDeceleration + rollingResistance) * spinPerSpeed * dt;
+            float resistance = (BrakeInput * config.brakeDeceleration + config.rollingResistance) * spinPerSpeed * dt;
             spin -= Mathf.Sign(spin) * Mathf.Min(resistance, Mathf.Abs(spin));
 
             return spin;

@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 6693318435797067410}
   - component: {fileID: 4959604661307075644}
   - component: {fileID: 4230772384755431058}
+  - component: {fileID: 2047052487946769654}
   m_Layer: 0
   m_Name: Player_Pre
   m_TagString: Untagged
@@ -156,6 +157,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Gameplay.Player.MovementComponent
   input: {fileID: 4230772384755431058}
+  config: {fileID: 11400000, guid: 769379b20bc140febacc11c369d2041e, type: 2}
   groundLayers:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -214,11 +216,20 @@ MonoBehaviour:
     m_RotationOrder: 4
   steerRate: 120
   minTurnSpeed: 0.3
-  grip: 0.8
-  pedalAcceleration: 3
-  maxPedalSpeed: 8
+  drivetrain:
+    gears:
+    - 2.5
+    - 3.5
+    - 4.5
+    - 5.5
+    - 6.5
+    startGear: 1
+    maxCadence: 1.5
+    lowestGearAcceleration: 4
+    deadSpotForce: 0.25
   brakeDeceleration: 6
   rollingResistance: 0.15
+  skidSlipSpeed: 0.5
 --- !u!114 &4959604661307075644
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -246,3 +257,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a239be0eb394faf9cccefcc45fda03d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InputBootstrap
+--- !u!114 &2047052487946769654
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 147088761720687368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6fd7ee38e2899a4ebbf5d74173d697e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Gameplay.Player.PedalBarDebugUI
+  maxBarWidth: 500
+  barHeight: 24
+  bottomMargin: 60

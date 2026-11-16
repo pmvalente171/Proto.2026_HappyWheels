@@ -1,0 +1,5 @@
+﻿# Movement
+
+1. Q and E are left and right pedals respectively. They should be represented by a bar that moves left or right. Completing a rotation in the pedals means moving the bar fully back and forth.
+2. Left and right arrow keys are used for steering. The steering wheel should rotate left or right based on the input.
+3. W and S are for moving going up or down a gear. Decreasing the gear reduces the size of the bar, while increasing the gear increases the size of the bar.

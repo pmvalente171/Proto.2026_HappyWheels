@@ -563,6 +563,222 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
             ]
         },
         {
+            ""name"": ""Bike"",
+            ""id"": ""b1d68b1c-6b81-4d1a-b434-e585aa8f2bac"",
+            ""actions"": [
+                {
+                    ""name"": ""PedalLeft"",
+                    ""type"": ""Button"",
+                    ""id"": ""dd867c63-0731-41b8-8841-6650c761ac96"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""PedalRight"",
+                    ""type"": ""Button"",
+                    ""id"": ""afb5a1e8-0108-4c2d-946c-75014ad4af3c"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Steer"",
+                    ""type"": ""Value"",
+                    ""id"": ""8a4da7a9-c101-48dd-8ea6-4c58bdad4160"",
+                    ""expectedControlType"": ""Axis"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""GearUp"",
+                    ""type"": ""Button"",
+                    ""id"": ""de875b4c-40fb-4a2d-9fd1-71419e77cace"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""GearDown"",
+                    ""type"": ""Button"",
+                    ""id"": ""7ed2204c-2e39-4eaa-b3b5-a2fa94991839"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Brake"",
+                    ""type"": ""Button"",
+                    ""id"": ""326fc4d8-5698-4597-a99b-fdd954a52bea"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                }
+            ],
+            ""bindings"": [
+                {
+                    ""name"": """",
+                    ""id"": ""59bf66c5-7fcb-4462-a94b-adc61e597b4a"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""PedalLeft"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""97b195df-d2a1-4bdb-a087-cf893a929040"",
+                    ""path"": ""<Gamepad>/leftTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""PedalLeft"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""7c9e46f8-a61c-4e02-a47b-f1721b68cdb5"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""PedalRight"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""1f1f6bca-023c-4163-8f94-7a0ec08fb6dd"",
+                    ""path"": ""<Gamepad>/rightTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""PedalRight"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""Arrows"",
+                    ""id"": ""7f06495c-adb3-4022-89e4-4c92a2cddd9e"",
+                    ""path"": ""1DAxis"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Steer"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""negative"",
+                    ""id"": ""60bf91c8-1854-41c4-bf69-e53b6103b1ae"",
+                    ""path"": ""<Keyboard>/leftArrow"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Steer"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""positive"",
+                    ""id"": ""b5b1912c-eb6f-4948-b626-3bc94c87628e"",
+                    ""path"": ""<Keyboard>/rightArrow"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Steer"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""a6960e1a-eb70-4486-9ace-6f108adfc12d"",
+                    ""path"": ""<Gamepad>/leftStick/x"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""Steer"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""811a242a-f68e-4bc0-97b8-94d4c20e48a3"",
+                    ""path"": ""<Keyboard>/w"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""GearUp"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f6cca648-62c8-49c1-a35b-9ab961fd7317"",
+                    ""path"": ""<Gamepad>/rightShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""GearUp"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""ba26981e-63b2-4c26-8b6b-e2f34a17b697"",
+                    ""path"": ""<Keyboard>/s"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""GearDown"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""90f802db-4274-4e07-a561-a492fbc04677"",
+                    ""path"": ""<Gamepad>/leftShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""GearDown"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""3c4835f0-3305-4501-9f30-7f61a22b6517"",
+                    ""path"": ""<Keyboard>/space"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Brake"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""be330248-d9c6-4038-a40a-df1bf7473940"",
+                    ""path"": ""<Gamepad>/buttonEast"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""Brake"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                }
+            ]
+        },
+        {
             ""name"": ""UI"",
             ""id"": ""272f6d14-89ba-496f-b7ff-215263d3219f"",
             ""actions"": [
@@ -1153,6 +1369,14 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
         m_Player_Previous = m_Player.FindAction("Previous", throwIfNotFound: true);
         m_Player_Next = m_Player.FindAction("Next", throwIfNotFound: true);
         m_Player_Sprint = m_Player.FindAction("Sprint", throwIfNotFound: true);
+        // Bike
+        m_Bike = asset.FindActionMap("Bike", throwIfNotFound: true);
+        m_Bike_PedalLeft = m_Bike.FindAction("PedalLeft", throwIfNotFound: true);
+        m_Bike_PedalRight = m_Bike.FindAction("PedalRight", throwIfNotFound: true);
+        m_Bike_Steer = m_Bike.FindAction("Steer", throwIfNotFound: true);
+        m_Bike_GearUp = m_Bike.FindAction("GearUp", throwIfNotFound: true);
+        m_Bike_GearDown = m_Bike.FindAction("GearDown", throwIfNotFound: true);
+        m_Bike_Brake = m_Bike.FindAction("Brake", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1170,6 +1394,7 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
     ~@GameInput()
     {
         UnityEngine.Debug.Assert(!m_Player.enabled, "This will cause a leak and performance issues, GameInput.Player.Disable() has not been called.");
+        UnityEngine.Debug.Assert(!m_Bike.enabled, "This will cause a leak and performance issues, GameInput.Bike.Disable() has not been called.");
         UnityEngine.Debug.Assert(!m_UI.enabled, "This will cause a leak and performance issues, GameInput.UI.Disable() has not been called.");
     }
 
@@ -1426,6 +1651,157 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
     /// Provides a new <see cref="PlayerActions" /> instance referencing this action map.
     /// </summary>
     public PlayerActions @Player => new PlayerActions(this);
+
+    // Bike
+    private readonly InputActionMap m_Bike;
+    private List<IBikeActions> m_BikeActionsCallbackInterfaces = new List<IBikeActions>();
+    private readonly InputAction m_Bike_PedalLeft;
+    private readonly InputAction m_Bike_PedalRight;
+    private readonly InputAction m_Bike_Steer;
+    private readonly InputAction m_Bike_GearUp;
+    private readonly InputAction m_Bike_GearDown;
+    private readonly InputAction m_Bike_Brake;
+    /// <summary>
+    /// Provides access to input actions defined in input action map "Bike".
+    /// </summary>
+    public struct BikeActions
+    {
+        private @GameInput m_Wrapper;
+
+        /// <summary>
+        /// Construct a new instance of the input action map wrapper class.
+        /// </summary>
+        public BikeActions(@GameInput wrapper) { m_Wrapper = wrapper; }
+        /// <summary>
+        /// Provides access to the underlying input action "Bike/PedalLeft".
+        /// </summary>
+        public InputAction @PedalLeft => m_Wrapper.m_Bike_PedalLeft;
+        /// <summary>
+        /// Provides access to the underlying input action "Bike/PedalRight".
+        /// </summary>
+        public InputAction @PedalRight => m_Wrapper.m_Bike_PedalRight;
+        /// <summary>
+        /// Provides access to the underlying input action "Bike/Steer".
+        /// </summary>
+        public InputAction @Steer => m_Wrapper.m_Bike_Steer;
+        /// <summary>
+        /// Provides access to the underlying input action "Bike/GearUp".
+        /// </summary>
+        public InputAction @GearUp => m_Wrapper.m_Bike_GearUp;
+        /// <summary>
+        /// Provides access to the underlying input action "Bike/GearDown".
+        /// </summary>
+        public InputAction @GearDown => m_Wrapper.m_Bike_GearDown;
+        /// <summary>
+        /// Provides access to the underlying input action "Bike/Brake".
+        /// </summary>
+        public InputAction @Brake => m_Wrapper.m_Bike_Brake;
+        /// <summary>
+        /// Provides access to the underlying input action map instance.
+        /// </summary>
+        public InputActionMap Get() { return m_Wrapper.m_Bike; }
+        /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Enable()" />
+        public void Enable() { Get().Enable(); }
+        /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Disable()" />
+        public void Disable() { Get().Disable(); }
+        /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.enabled" />
+        public bool enabled => Get().enabled;
+        /// <summary>
+        /// Implicitly converts an <see ref="BikeActions" /> to an <see ref="InputActionMap" /> instance.
+        /// </summary>
+        public static implicit operator InputActionMap(BikeActions set) { return set.Get(); }
+        /// <summary>
+        /// Adds <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
+        /// </summary>
+        /// <param name="instance">Callback instance.</param>
+        /// <remarks>
+        /// If <paramref name="instance" /> is <c>null</c> or <paramref name="instance"/> have already been added this method does nothing.
+        /// </remarks>
+        /// <seealso cref="BikeActions" />
+        public void AddCallbacks(IBikeActions instance)
+        {
+            if (instance == null || m_Wrapper.m_BikeActionsCallbackInterfaces.Contains(instance)) return;
+            m_Wrapper.m_BikeActionsCallbackInterfaces.Add(instance);
+            @PedalLeft.started += instance.OnPedalLeft;
+            @PedalLeft.performed += instance.OnPedalLeft;
+            @PedalLeft.canceled += instance.OnPedalLeft;
+            @PedalRight.started += instance.OnPedalRight;
+            @PedalRight.performed += instance.OnPedalRight;
+            @PedalRight.canceled += instance.OnPedalRight;
+            @Steer.started += instance.OnSteer;
+            @Steer.performed += instance.OnSteer;
+            @Steer.canceled += instance.OnSteer;
+            @GearUp.started += instance.OnGearUp;
+            @GearUp.performed += instance.OnGearUp;
+            @GearUp.canceled += instance.OnGearUp;
+            @GearDown.started += instance.OnGearDown;
+            @GearDown.performed += instance.OnGearDown;
+            @GearDown.canceled += instance.OnGearDown;
+            @Brake.started += instance.OnBrake;
+            @Brake.performed += instance.OnBrake;
+            @Brake.canceled += instance.OnBrake;
+        }
+
+        /// <summary>
+        /// Removes <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
+        /// </summary>
+        /// <remarks>
+        /// Calling this method when <paramref name="instance" /> have not previously been registered has no side-effects.
+        /// </remarks>
+        /// <seealso cref="BikeActions" />
+        private void UnregisterCallbacks(IBikeActions instance)
+        {
+            @PedalLeft.started -= instance.OnPedalLeft;
+            @PedalLeft.performed -= instance.OnPedalLeft;
+            @PedalLeft.canceled -= instance.OnPedalLeft;
+            @PedalRight.started -= instance.OnPedalRight;
+            @PedalRight.performed -= instance.OnPedalRight;
+            @PedalRight.canceled -= instance.OnPedalRight;
+            @Steer.started -= instance.OnSteer;
+            @Steer.performed -= instance.OnSteer;
+            @Steer.canceled -= instance.OnSteer;
+            @GearUp.started -= instance.OnGearUp;
+            @GearUp.performed -= instance.OnGearUp;
+            @GearUp.canceled -= instance.OnGearUp;
+            @GearDown.started -= instance.OnGearDown;
+            @GearDown.performed -= instance.OnGearDown;
+            @GearDown.canceled -= instance.OnGearDown;
+            @Brake.started -= instance.OnBrake;
+            @Brake.performed -= instance.OnBrake;
+            @Brake.canceled -= instance.OnBrake;
+        }
+
+        /// <summary>
+        /// Unregisters <param cref="instance" /> and unregisters all input action callbacks via <see cref="BikeActions.UnregisterCallbacks(IBikeActions)" />.
+        /// </summary>
+        /// <seealso cref="BikeActions.UnregisterCallbacks(IBikeActions)" />
+        public void RemoveCallbacks(IBikeActions instance)
+        {
+            if (m_Wrapper.m_BikeActionsCallbackInterfaces.Remove(instance))
+                UnregisterCallbacks(instance);
+        }
+
+        /// <summary>
+        /// Replaces all existing callback instances and previously registered input action callbacks associated with them with callbacks provided via <param cref="instance" />.
+        /// </summary>
+        /// <remarks>
+        /// If <paramref name="instance" /> is <c>null</c>, calling this method will only unregister all existing callbacks but not register any new callbacks.
+        /// </remarks>
+        /// <seealso cref="BikeActions.AddCallbacks(IBikeActions)" />
+        /// <seealso cref="BikeActions.RemoveCallbacks(IBikeActions)" />
+        /// <seealso cref="BikeActions.UnregisterCallbacks(IBikeActions)" />
+        public void SetCallbacks(IBikeActions instance)
+        {
+            foreach (var item in m_Wrapper.m_BikeActionsCallbackInterfaces)
+                UnregisterCallbacks(item);
+            m_Wrapper.m_BikeActionsCallbackInterfaces.Clear();
+            AddCallbacks(instance);
+        }
+    }
+    /// <summary>
+    /// Provides a new <see cref="BikeActions" /> instance referencing this action map.
+    /// </summary>
+    public BikeActions @Bike => new BikeActions(this);
 
     // UI
     private readonly InputActionMap m_UI;
@@ -1756,6 +2132,56 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnSprint(InputAction.CallbackContext context);
+    }
+    /// <summary>
+    /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Bike" which allows adding and removing callbacks.
+    /// </summary>
+    /// <seealso cref="BikeActions.AddCallbacks(IBikeActions)" />
+    /// <seealso cref="BikeActions.RemoveCallbacks(IBikeActions)" />
+    public interface IBikeActions
+    {
+        /// <summary>
+        /// Method invoked when associated input action "PedalLeft" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnPedalLeft(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "PedalRight" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnPedalRight(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Steer" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnSteer(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "GearUp" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnGearUp(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "GearDown" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnGearDown(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Brake" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnBrake(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.
