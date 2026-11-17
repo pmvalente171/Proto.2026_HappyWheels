@@ -1,0 +1,14 @@
+{
+    "name": "GameArchitecture.Tuning.Editor",
+    "rootNamespace": "GameArchitecture.Tuning.Editing",
+    "references": ["GameArchitecture.Tuning"],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -101,7 +101,9 @@ The HUD also shows the measured coasting slowdown (km/h/s) while you're not peda
 
 ### The `[Tunable]` attribute (reusable)
 
-`GameArchitecture/Tuning` doesn't depend on the bike and can be copied to other projects:
+This is a standalone Unity package, `Packages/com.gamearchitecture.tuning`, embedded in this project. It doesn't
+depend on the bike. To use it in another project, install `PackageBuilds/com.gamearchitecture.tuning-1.0.0.tgz`
+through *Package Manager ▸ + ▸ Install package from tarball…*. The package's own README explains how to use it.
 
 ```csharp
 [Tunable("Bike", "Pedalling/Gears")]                 // tab, folder path
