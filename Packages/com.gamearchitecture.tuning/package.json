@@ -1,0 +1,9 @@
+{
+  "name": "com.gamearchitecture.tuning",
+  "version": "1.0.0",
+  "displayName": "Tuning Window",
+  "description": "Mark ScriptableObject fields with [Tunable] and edit them all in one place (Window > Tuning), grouped into tabs and folders, live during play, with Save and Revert. Arrays and lists are drawn as tables, and fields can be made read-only.",
+  "unity": "2021.3",
+  "keywords": ["tuning", "editor", "design", "scriptableobject", "inspector"],
+  "author": { "name": "GameArchitecture" }
+}
